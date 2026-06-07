@@ -16,6 +16,7 @@
     <meta name="theme-color" content="#f5c842">
 </head>
 <body>
+    <div id="app-viewport">
 
     <!-- View: Authentication Screen -->
     <div id="auth-page" class="auth-page">
@@ -199,6 +200,14 @@
                         <i data-lucide="search" class="search-icon"></i>
                         <input type="text" id="search-input" placeholder="Search for textbooks, laptops, notes..." oninput="app.filterListings()">
                         <button class="btn btn-primary" onclick="app.filterListings()">Search</button>
+                    </div>
+                    <div class="mobile-filter-trigger-row">
+                        <button type="button" class="btn btn-secondary mobile-filter-btn" onclick="app.openMobileFilters(event)">
+                            <i data-lucide="sliders"></i> Filter & Sort
+                        </button>
+                        <button type="button" class="btn btn-secondary mobile-wishlist-toggle-btn" id="mobile-wishlist-toggle-btn" onclick="app.toggleMobileWishlistOnly(event)">
+                            <i data-lucide="heart" id="mobile-wishlist-heart-icon" style="width: 16px; height: 16px;"></i> Wishlist
+                        </button>
                     </div>
                 </div>
             </section>
@@ -911,6 +920,93 @@
         </div>
     </div>
 
+    <!-- Mobile Filters Bottom Sheet Modal -->
+    <div id="mobile-filters-modal" class="modal-overlay mobile-bottom-sheet">
+        <div class="modal-content bottom-sheet-content">
+            <div class="modal-header">
+                <h3>Filter & Sort Listings</h3>
+                <button class="modal-close-btn" onclick="app.closeModal('mobile-filters-modal')">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="filter-group">
+                    <h4>Sort By</h4>
+                    <select class="form-control" id="mobile-sort-select" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();">
+                        <option value="newest">Newest First</option>
+                        <option value="low-to-high">Price: Low to High</option>
+                        <option value="high-to-low">Price: High to Low</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <h4>Categories</h4>
+                    <ul class="filter-list">
+                        <li><label><input type="radio" name="mobile-category" value="all" checked onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> All Categories</label></li>
+                        <li><label><input type="radio" name="mobile-category" value="Books" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Books</label></li>
+                        <li><label><input type="radio" name="mobile-category" value="Electronics" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Electronics</label></li>
+                        <li><label><input type="radio" name="mobile-category" value="Lab Equipment" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Lab Equipment</label></li>
+                        <li><label><input type="radio" name="mobile-category" value="Furniture" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Furniture</label></li>
+                        <li><label><input type="radio" name="mobile-category" value="Notes" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Notes</label></li>
+                    </ul>
+                </div>
+                
+                <div class="filter-group">
+                    <h4>Condition</h4>
+                    <ul class="filter-list" id="mobile-condition-filters">
+                        <li><label><input type="checkbox" name="mobile-condition" value="New" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> New</label></li>
+                        <li><label><input type="checkbox" name="mobile-condition" value="Like New" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Like New</label></li>
+                        <li><label><input type="checkbox" name="mobile-condition" value="Used" onchange="app.syncMobileFiltersToDesktop(); app.filterListings();"> Used</label></li>
+                    </ul>
+                </div>
+
+                <div class="filter-group">
+                    <h4>Price Range</h4>
+                    <div class="price-inputs">
+                        <input type="number" id="mobile-filter-price-min" placeholder="Min ₹" class="form-control" oninput="app.syncMobileFiltersToDesktop(); app.filterListings();">
+                        <span>-</span>
+                        <input type="number" id="mobile-filter-price-max" placeholder="Max ₹" class="form-control" oninput="app.syncMobileFiltersToDesktop(); app.filterListings();">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" style="width: 100%; font-weight:700;" onclick="app.closeModal('mobile-filters-modal')">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav-bar" id="mobile-nav-bar" style="display: none;">
+        <a href="#" class="mobile-nav-item active" onclick="app.navigate('home', event)">
+            <i data-lucide="home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="app.navigate('browse', event)">
+            <i data-lucide="shopping-bag"></i>
+            <span>Market</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="app.navigate('collab', event)">
+            <i data-lucide="users"></i>
+            <span>Teams</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="app.navigate('reddit', event)">
+            <i data-lucide="message-square"></i>
+            <span>Forum</span>
+        </a>
+        <a href="#" class="mobile-nav-item" id="mobile-chat-link" onclick="app.navigate('chat', event)">
+            <div class="mobile-nav-icon-wrapper" style="position: relative; display: inline-flex;">
+                <i data-lucide="message-circle"></i>
+                <span class="badge-unread-dot" id="mobile-chat-badge-dot" style="display:none; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></span>
+            </div>
+            <span>Inbox</span>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="app.navigate('profile', event)">
+            <i data-lucide="user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
     <!-- Toast Notification Container -->
     <div class="toast-wrap" id="toast-container"></div>
 
@@ -920,6 +1016,7 @@
             <p>&copy; 2026 CampusLink. Crafted for Vidyavardhaka College of Engineering students.</p>
         </div>
     </footer>
+    </div> <!-- End of #app-viewport -->
 
     <!-- Supabase Client JS SDK (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

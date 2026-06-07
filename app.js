@@ -10,7 +10,7 @@
  * If left empty, the application will seamlessly fall back to local localStorage database mode.
  */
 const supabaseConfig = {
-    url: "https://guzxcmrcngvaahcrjbrs.supabase.co",
+    url: "YOUR_SUPABASE_URL",
     anonKey: "sb_publishable_zispv_t6jezhzOpmnfsVlg_n7KG84eH"
 };
 
@@ -110,6 +110,7 @@ const app = {
         // Show main layout & elements
         document.getElementById('auth-page').style.display = 'none';
         document.getElementById('main-navbar').style.display = 'block';
+        document.getElementById('mobile-nav-bar').style.display = 'flex';
         document.getElementById('app-content').style.display = 'block';
         document.getElementById('main-footer').style.display = 'block';
 
@@ -136,6 +137,7 @@ const app = {
         this.currentUser = null;
         document.getElementById('auth-page').style.display = 'flex';
         document.getElementById('main-navbar').style.display = 'none';
+        document.getElementById('mobile-nav-bar').style.display = 'none';
         document.getElementById('app-content').style.display = 'none';
         document.getElementById('main-footer').style.display = 'none';
         
@@ -487,7 +489,7 @@ const app = {
         }
 
         // Remove active class from all navigation items
-        document.querySelectorAll('.nav-links a').forEach(el => {
+        document.querySelectorAll('.nav-links a, .mobile-nav-bar a').forEach(el => {
             el.classList.remove('active');
         });
 
@@ -496,13 +498,11 @@ const app = {
             el.classList.remove('active');
         });
 
-        // Active corresponding nav link
-        let activeLink = Array.from(document.querySelectorAll('.nav-links a')).find(a => 
+        // Active corresponding nav link (both desktop and mobile bottom nav)
+        const activeLinks = Array.from(document.querySelectorAll('.nav-links a, .mobile-nav-bar a')).filter(a => 
             a.getAttribute('onclick') && a.getAttribute('onclick').includes(`'${viewId === 'browse' && this.showWishlistOnly ? 'wishlist' : viewId}'`)
         );
-        if (activeLink) {
-            activeLink.classList.add('active');
-        }
+        activeLinks.forEach(el => el.classList.add('active'));
 
         // Display view container
         const targetView = document.getElementById(`view-${viewId}`);
@@ -1557,6 +1557,15 @@ const app = {
                         <p class="reddit-post-body">${post.body}</p>
 
                         <div class="reddit-post-footer">
+                            <div class="reddit-mobile-votes" style="display: none;">
+                                <button class="vote-arrow up ${upClass}" onclick="app.voteRedditPost(${post.id}, 1)">
+                                    <i data-lucide="arrow-up" style="width: 16px; height: 16px;"></i>
+                                </button>
+                                <span class="vote-count">${score}</span>
+                                <button class="vote-arrow down ${downClass}" onclick="app.voteRedditPost(${post.id}, -1)">
+                                    <i data-lucide="arrow-down" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
                             <button class="reddit-action-btn" onclick="app.toggleRedditComments(${post.id})">
                                 <i data-lucide="message-square" style="width: 14px; height: 14px;"></i>
                                 <span>${commentCount} Comment${commentCount === 1 ? '' : 's'}</span>
@@ -2353,7 +2362,7 @@ const app = {
 
         if (!sidebar || !pane) return;
 
-        if (window.innerWidth <= 768) {
+        if (true) {
             if (show) {
                 sidebar.classList.remove('inactive');
                 pane.classList.remove('active');
@@ -2371,6 +2380,26 @@ const app = {
     },
 
     updateUnreadCountBadge() {
+        const updateBadges = (totalUnread) => {
+            const badge = document.getElementById('nav-chat-badge');
+            if (badge) {
+                if (totalUnread > 0) {
+                    badge.style.display = 'inline-flex';
+                    badge.textContent = totalUnread;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            const dot = document.getElementById('nav-chat-badge-dot');
+            if (dot) {
+                dot.style.display = totalUnread > 0 ? 'inline-block' : 'none';
+            }
+            const mobDot = document.getElementById('mobile-chat-badge-dot');
+            if (mobDot) {
+                mobDot.style.display = totalUnread > 0 ? 'inline-block' : 'none';
+            }
+        };
+
         if (this.isSupabaseEnabled()) {
             // Count unread from our snapshot inbox representation
             const qA = supabaseClient.from("chats").select("*").eq("user_a", this.currentUser.email);
@@ -2392,15 +2421,7 @@ const app = {
                 processSnap(snapA);
                 processSnap(snapB);
 
-                const badge = document.getElementById('nav-chat-badge');
-                if (badge) {
-                    if (totalUnread > 0) {
-                        badge.style.display = 'inline-flex';
-                        badge.textContent = totalUnread;
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                }
+                updateBadges(totalUnread);
             }).catch(err => console.error("Failed to update unread badge:", err));
         } else {
             const inboxKey = `cl_messages_${this.currentUser.email}`;
@@ -2412,15 +2433,7 @@ const app = {
                 totalUnread += thread.filter(m => m.sender === email && m.unread).length;
             });
 
-            const badge = document.getElementById('nav-chat-badge');
-            if (badge) {
-                if (totalUnread > 0) {
-                    badge.style.display = 'inline-flex';
-                    badge.textContent = totalUnread;
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
+            updateBadges(totalUnread);
         }
     },
 
@@ -3428,6 +3441,110 @@ const app = {
         
         // Refresh application state
         this.checkAuthSession();
+    },
+
+    openMobileFilters(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        this.syncDesktopFiltersToMobile();
+        this.openModal('mobile-filters-modal');
+    },
+
+    toggleMobileWishlistOnly(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        this.showWishlistOnly = !this.showWishlistOnly;
+        
+        const btn = document.getElementById('mobile-wishlist-toggle-btn');
+        const icon = document.getElementById('mobile-wishlist-heart-icon');
+        
+        if (this.showWishlistOnly) {
+            if (btn) btn.classList.add('active');
+            if (icon) icon.style.fill = '#f43f5e';
+            this.showToast("Showing wishlist items only", "info");
+        } else {
+            if (btn) btn.classList.remove('active');
+            if (icon) icon.style.fill = 'none';
+            this.showToast("Showing all items", "info");
+        }
+        
+        // Sync desktop navbar active link styling
+        document.querySelectorAll('.nav-links a, .mobile-nav-bar a').forEach(el => el.classList.remove('active'));
+        const activeView = this.showWishlistOnly ? 'wishlist' : 'browse';
+        const activeLinks = Array.from(document.querySelectorAll('.nav-links a, .mobile-nav-bar a')).filter(a => 
+            a.getAttribute('onclick') && a.getAttribute('onclick').includes(`'${activeView}'`)
+        );
+        activeLinks.forEach(el => el.classList.add('active'));
+
+        this.filterListings();
+    },
+
+    syncMobileFiltersToDesktop() {
+        // Price Range
+        const mobMin = document.getElementById('mobile-filter-price-min');
+        const deskMin = document.getElementById('filter-price-min');
+        if (mobMin && deskMin) deskMin.value = mobMin.value;
+
+        const mobMax = document.getElementById('mobile-filter-price-max');
+        const deskMax = document.getElementById('filter-price-max');
+        if (mobMax && deskMax) deskMax.value = mobMax.value;
+
+        // Categories
+        const mobCatChecked = document.querySelector('input[name="mobile-category"]:checked');
+        if (mobCatChecked) {
+            const val = mobCatChecked.value;
+            const deskCat = document.querySelector(`input[name="category"][value="${val}"]`);
+            if (deskCat) deskCat.checked = true;
+        }
+
+        // Conditions
+        const conditions = ['New', 'Like New', 'Used'];
+        conditions.forEach(cond => {
+            const mobCb = document.querySelector(`input[name="mobile-condition"][value="${cond}"]`);
+            const deskCb = document.querySelector(`#browse-condition-filters input[value="${cond}"]`);
+            if (mobCb && deskCb) deskCb.checked = mobCb.checked;
+        });
+
+        // Sort Selector
+        const mobSort = document.getElementById('mobile-sort-select');
+        const deskSort = document.getElementById('sort-select');
+        if (mobSort && deskSort) deskSort.value = mobSort.value;
+    },
+
+    syncDesktopFiltersToMobile() {
+        // Price Range
+        const mobMin = document.getElementById('mobile-filter-price-min');
+        const deskMin = document.getElementById('filter-price-min');
+        if (mobMin && deskMin) mobMin.value = deskMin.value;
+
+        const mobMax = document.getElementById('mobile-filter-price-max');
+        const deskMax = document.getElementById('filter-price-max');
+        if (mobMax && deskMax) mobMax.value = deskMax.value;
+
+        // Categories
+        const deskCatChecked = document.querySelector('input[name="category"]:checked');
+        if (deskCatChecked) {
+            const val = deskCatChecked.value;
+            const mobCat = document.querySelector(`input[name="mobile-category"][value="${val}"]`);
+            if (mobCat) mobCat.checked = true;
+        }
+
+        // Conditions
+        const conditions = ['New', 'Like New', 'Used'];
+        conditions.forEach(cond => {
+            const mobCb = document.querySelector(`input[name="mobile-condition"][value="${cond}"]`);
+            const deskCb = document.querySelector(`#browse-condition-filters input[value="${cond}"]`);
+            if (mobCb && deskCb) mobCb.checked = deskCb.checked;
+        });
+
+        // Sort Selector
+        const mobSort = document.getElementById('mobile-sort-select');
+        const deskSort = document.getElementById('sort-select');
+        if (mobSort && deskSort) mobSort.value = deskSort.value;
     }
 };
 
